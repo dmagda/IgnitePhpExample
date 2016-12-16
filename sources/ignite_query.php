@@ -27,6 +27,8 @@ try {
 }
 
 /**
+ * Connecting to the cluster.
+ *
  * @return PDO
  */
 function connect() {
@@ -45,6 +47,8 @@ function connect() {
 }
 
 /**
+ * Getting a total number of persons.
+ *
  * @param $dbh
  * @return mixed
  */
@@ -56,21 +60,29 @@ function numberOfPersons($dbh)
 }
 
 /**
+ * Getting a total number of vehicles.
+ *
  * @param $dbh
  * @return mixed
  */
 function numberOfVehicles($dbh)
 {
+    // Have to set the schema name (cache name) explicitly for Vehicle because
+    // the default one that is configured in DSN is 'PersonCache'.
     $res = $dbh->query('SELECT count(*) FROM "VehicleCache".Vehicle');
 
     print ">>>> Vehicles number: " . $res->fetchColumn() . "\n\n";
 }
 
 /**
+ * Getting a total number of persons per vehicle.
+ *
  * @param $dbh
  */
 function personVehiclesNumber($dbh, $personId)
 {
+    // Have to set the schema name (cache name) explicitly for Vehicle because
+    // the default one that is configured in DSN is 'PersonCache'.
     $res = $dbh->query('SELECT count(*) FROM "VehicleCache".Vehicle as v 
                         WHERE v.personId = ' . $personId);
 
@@ -78,12 +90,19 @@ function personVehiclesNumber($dbh, $personId)
 }
 
 /**
+ * Getting the oldest vehicles grouped by people.
+ *
+ * The query returns a complete and consistent result set thanks to the setup of affinity collocation in
+ * between persons' and vehicles' caches.
+ *
  * @param $dbh
  */
 function oldestVehiclePerPerson($dbh)
 {
     print ">>>> Oldest car per person" . "\n\n";
 
+    // Have to set the schema name (cache name) explicitly for Vehicle because
+    // the default one that is configured in DSN is 'PersonCache'.
     $res = $dbh->query('SELECT p.lastName, min(v.year) as year_res FROM Person as p 
                         JOIN "VehicleCache".Vehicle as v ON p._key = v.personID
                         WHERE p.age > 30 and p.age < 50 GROUP BY p.lastName ORDER BY year_res');

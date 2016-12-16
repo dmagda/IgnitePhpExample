@@ -45,6 +45,8 @@ function connect()
 }
 
 /**
+ * Filling in persons cache.
+ *
  * @param $dbh
  * @param $personsNumber
  */
@@ -83,6 +85,8 @@ function fillInPersonsCache($dbh, $personsNumber)
 }
 
 /**
+ * Filling in vehicles cache.
+ *
  * @param $dbh
  * @param $totalPersonsNumber
  */
