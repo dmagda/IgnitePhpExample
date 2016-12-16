@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util.xsd">
+    <bean id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
+
+        <!-- Enabling ODBC with default parameters. -->
+        <property name="odbcConfiguration">
+            <bean class="org.apache.ignite.configuration.OdbcConfiguration"></bean>
+        </property>
+
+        <!-- Configuring cache. -->
+        <property name="cacheConfiguration">
+            <list>
+                <!-- Configuring Persons' cache -->
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="PersonCache"/>
+
+                    <!-- Defining types stored in the cache -->
+                    <property name="queryEntities">
+                        <list>
+                            <bean class="org.apache.ignite.cache.QueryEntity">
+                                <!-- Setting key type -->
+                                <property name="keyType" value="java.lang.Integer"/>
+                                <!-- Setting value type. It's optional to create a Java POJO for Person -->
+                                <property name="valueType" value="Person"/>
+
+                                <!-- Listing all the fields that to be accessed with SELECT and DML statements -->
+                                <property name="fields">
+                                    <map>
+                                        <entry key="firstName" value="java.lang.String"/>
+                                        <entry key="lastName" value="java.lang.String"/>
+                                        <entry key="age" value="java.lang.Integer"/>
+                                        <entry key="address" value="java.lang.String"/>
+                                    </map>
+                                </property>
+
+                                <!-- Defining a subset of the fields, listed above, that will be indexed -->
+                                <property name="indexes">
+                                    <list>
+                                        <bean class="org.apache.ignite.cache.QueryIndex">
+                                            <constructor-arg value="age"/>
+                                        </bean>
+                                        <bean class="org.apache.ignite.cache.QueryIndex">
+                                            <constructor-arg value="firstName"/>
+                                        </bean>
+                                    </list>
+                                </property>
+                            </bean>
+                        </list>
+                    </property>
+                </bean>
+
+                <!-- Configuring Vehicles' cache -->
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="VehicleCache"/>
+
+                    <!-- Defining types stored in the cache -->
+                    <property name="queryEntities">
+                        <list>
+                            <bean class="org.apache.ignite.cache.QueryEntity">
+                                <!--
+                                    Setting key type. It's optional to create a Java POJO for VehicleKey in Ignite.
+                                    Refer to additional configuration parameters that have to be applied for this
+                                    custom complex key.
+                                 -->
+                                <property name="keyType" value="VehicleKey"/>
+
+                                <!-- Setting value type. It's optional to create a Java POJO for Vehicle in Ignite. -->
+                                <property name="valueType" value="Vehicle"/>
+
+                                <!-- Listing all the fields that to be accessed with SELECT and DML statements -->
+                                <property name="fields">
+                                    <map>
+                                        <!-- These are fields stored in the key. -->
+                                        <entry key="vehicleId" value="java.lang.Integer"/>
+                                        <entry key="personId" value="java.lang.Integer"/>
+
+                                        <!-- These are fields stored in the value -->
+                                        <entry key="type" value="java.lang.Integer"/>
+                                        <entry key="model" value="java.lang.String"/>
+                                        <entry key="year" value="java.lang.Integer"/>
+                                    </map>
+                                </property>
+
+                                <!--
+                                    Specifying which of the fields listed above belong to the key.
+                                    https://apacheignite.readme.io/docs/dml#section-custom-keys
+                                -->
+                                <property name="keyFields">
+                                    <set>
+                                        <!-- These are fields stored in the key. -->
+                                        <value>vehicleId</value>
+                                        <value>personId</value>
+                                    </set>
+                                </property>
+
+                                <!-- Defining a subset of the fields, listed above, that will be indexed -->
+                                <property name="indexes">
+                                    <list>
+                                        <bean class="org.apache.ignite.cache.QueryIndex">
+                                            <constructor-arg value="vehicleId"/>
+                                        </bean>
+                                        <bean class="org.apache.ignite.cache.QueryIndex">
+                                            <constructor-arg value="personId"/>
+                                        </bean>
+                                        <bean class="org.apache.ignite.cache.QueryIndex">
+                                            <constructor-arg value="type"/>
+                                        </bean>
+                                    </list>
+                                </property>
+                            </bean>
+                        </list>
+                    </property>
+                </bean>
+            </list>
+        </property>
+
+        <!--
+            Enabling affinity collocation for persons and their vehicles.
+            https://apacheignite.readme.io/docs/affinity-collocation#collocate-data-with-data
+
+            This is required if you want to execute SQL queries JOINing persons and vehicles data
+            in a collocated fashion.
+            https://apacheignite.readme.io/v1.8/docs/sql-queries#section-distributed-collocated-joins
+
+            As a result of the configuration, all the vehicles that correspond to a specific 'personId'
+            will be stored on the same node where the person with the give ID resides.
+        -->
+        <property name="cacheKeyConfiguration">
+            <bean class="org.apache.ignite.cache.CacheKeyConfiguration">
+                <!-- Passing key's type name. -->
+                <constructor-arg value="VehicleType"/>
+                <!-- Passing the name of the field which will be the affinity key. -->
+                <constructor-arg value="personId"/>
+            </bean>
+        </property>
+
+        <!-- Advanced configuration of binary types used in the example. -->
+    <property name="binaryConfiguration">
+        <bean class="org.apache.ignite.configuration.BinaryConfiguration">
+            <property name="typeConfigurations">
+                <list>
+                    <!-- Advanced configuration for custom key of 'VehicleKey' type. -->
+                    <bean class="org.apache.ignite.binary.BinaryTypeConfiguration">
+                        <!-- Type name -->
+                        <property name="typeName" value="VehicleKey"/>
+
+                        <!--
+                            Setting up the identity resolver.
+                            Required to make 'hashCode' and 'equals' operations work properly in runtime
+                            for VehicleKey objects.
+                            Read more: https://apacheignite.readme.io/v1.8/docs/binary-marshaller#changing-default-binary-equals-and-hash-code-behav
+                        -->
+                        <property name="identityResolver">
+                            <bean class="org.apache.ignite.binary.BinaryFieldIdentityResolver">
+                                <!-- Values of the fields below will be used for 'hashCode' and 'equals' operations -->
+                                <property name="fieldNames">
+                                    <list>
+                                        <value>vehicleId</value>
+                                        <value>personId</value>
+                                    </list>
+                                </property>
+                            </bean>
+                        </property>
+                    </bean>
+                </list>
+            </property>
+        </bean>
+    </property>
+</bean>
+</beans>
