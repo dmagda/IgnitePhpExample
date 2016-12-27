@@ -31,4 +31,4 @@ The first one holds the configuration that has to be used for Apache Ignite clus
 
 The sources contain PHP scripts for data preloading and querying.
 
-The blog post below provides the deep dive for the example: TBD
+The blog post below provides the deep dive for the example: https://dzone.com/articles/apache-ignite-enables-full-fledged-sql-support-for
